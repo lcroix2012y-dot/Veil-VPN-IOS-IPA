@@ -1,4 +1,3 @@
-```yaml
 name: Build Veil VPN IPA
 
 on:
@@ -127,4 +126,3 @@ jobs:
           path: veil-vpn-ios/Veil-VPN.ipa
           if-no-files-found: error
           retention-days: 14
-```
