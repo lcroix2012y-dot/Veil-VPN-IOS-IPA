@@ -1,43 +1,68 @@
-name: VeilVPN
-options:
-  bundleIdPrefix: fr.veil
-  deploymentTarget:
-    iOS: "17.0"
-  createIntermediateGroups: true
-settings:
-  base:
-    SWIFT_VERSION: "5.0"
-    MARKETING_VERSION: "1.0.0"
-    CURRENT_PROJECT_VERSION: "1"
-    TARGETED_DEVICE_FAMILY: "1,2"
-targets:
-  VeilVPN:
-    type: application
-    platform: iOS
-    sources:
-      - path: VeilVPN
-    info:
-      path: Config/Info.plist
-      properties:
-        CFBundleDisplayName: Veil VPN
-        CFBundleShortVersionString: "$(MARKETING_VERSION)"
-        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
-        UILaunchScreen: {}
-        UIUserInterfaceStyle: Dark
-        UISupportedInterfaceOrientations:
-          - UIInterfaceOrientationPortrait
-        UISupportedInterfaceOrientations~ipad:
-          - UIInterfaceOrientationPortrait
-          - UIInterfaceOrientationLandscapeLeft
-          - UIInterfaceOrientationLandscapeRight
-        ITSAppUsesNonExemptEncryption: false
-        # Équivalent d'usesCleartextTraffic côté Android (API ip-api.com en HTTP, sites http:// du navigateur)
-        NSAppTransportSecurity:
-          NSAllowsArbitraryLoads: true
-    settings:
-      base:
-        PRODUCT_BUNDLE_IDENTIFIER: fr.veil.vpn
-        PRODUCT_NAME: VeilVPN
-        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
-        GENERATE_INFOPLIST_FILE: NO
-        CODE_SIGN_STYLE: Manual
+name: Build Veil VPN IPA
+ 
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+ 
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+ 
+      - name: Localiser le projet (project.yml)
+        id: loc
+        run: |
+          P=$(find . -name project.yml -not -path './.git/*' | head -n 1)
+          if [ -z "$P" ]; then
+            echo "::error::project.yml introuvable dans le dépôt. Contenu :"
+            find . -not -path './.git/*' -type f | head -60
+            exit 1
+          fi
+          echo "dir=$(dirname "$P")" >> "$GITHUB_OUTPUT"
+ 
+      - name: Installer XcodeGen
+        run: brew install xcodegen
+ 
+      - name: Générer le projet Xcode
+        working-directory: ${{ steps.loc.outputs.dir }}
+        run: xcodegen generate
+ 
+      - name: Compiler (archive non signée)
+        working-directory: ${{ steps.loc.outputs.dir }}
+        run: |
+          xcodebuild archive \
+            -project VeilVPN.xcodeproj \
+            -scheme VeilVPN \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -archivePath build/VeilVPN.xcarchive \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+ 
+      - name: Pseudo-signer le binaire (utile pour TrollStore)
+        continue-on-error: true
+        working-directory: ${{ steps.loc.outputs.dir }}
+        run: |
+          brew install ldid
+          ldid -S "build/VeilVPN.xcarchive/Products/Applications/VeilVPN.app/VeilVPN"
+ 
+      - name: Créer l'IPA
+        working-directory: ${{ steps.loc.outputs.dir }}
+        run: |
+          rm -rf Payload Veil-VPN.ipa
+          mkdir Payload
+          cp -R "build/VeilVPN.xcarchive/Products/Applications/VeilVPN.app" Payload/
+          zip -qry Veil-VPN.ipa Payload
+          ls -lh Veil-VPN.ipa
+ 
+      - name: Publier l'IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Veil-VPN-ipa
+          path: ${{ steps.loc.outputs.dir }}/Veil-VPN.ipa
+ 
