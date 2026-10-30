@@ -1,0 +1,52 @@
+name: Build Veil VPN IPA
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Installer XcodeGen
+        run: brew install xcodegen
+
+      - name: Générer le projet Xcode
+        run: xcodegen generate
+
+      - name: Compiler (archive non signée)
+        run: |
+          xcodebuild archive \
+            -project VeilVPN.xcodeproj \
+            -scheme VeilVPN \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -archivePath build/VeilVPN.xcarchive \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Pseudo-signer le binaire (utile pour TrollStore)
+        continue-on-error: true
+        run: |
+          brew install ldid
+          ldid -S "build/VeilVPN.xcarchive/Products/Applications/VeilVPN.app/VeilVPN"
+
+      - name: Créer l'IPA
+        run: |
+          rm -rf Payload Veil-VPN.ipa
+          mkdir Payload
+          cp -R "build/VeilVPN.xcarchive/Products/Applications/VeilVPN.app" Payload/
+          zip -qry Veil-VPN.ipa Payload
+          ls -lh Veil-VPN.ipa
+
+      - name: Publier l'IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Veil-VPN-ipa
+          path: Veil-VPN.ipa
