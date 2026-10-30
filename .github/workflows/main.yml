@@ -1,38 +1,65 @@
+```yaml
 name: Build Veil VPN IPA
- 
+
 on:
   push:
-    branches: [ main, master ]
+    branches:
+      - main
+      - master
   workflow_dispatch:
- 
+
 jobs:
   build:
     runs-on: macos-15
+
     steps:
-      - name: Récupérer le code
+      # 1. Récupérer le dépôt
+      - name: Checkout repository
         uses: actions/checkout@v4
- 
-      - name: Localiser le projet (project.yml)
-        id: loc
+
+      # 2. Vérifier la structure
+      - name: Vérifier le projet
         run: |
-          P=$(find . -name project.yml -not -path './.git/*' | head -n 1)
-          if [ -z "$P" ]; then
-            echo "::error::project.yml introuvable dans le dépôt. Contenu :"
-            find . -not -path './.git/*' -type f | head -60
+          echo "Contenu du dépôt :"
+          ls -la
+
+          if [ ! -f "veil-vpn-ios/project.yml" ]; then
+            echo "::error::veil-vpn-ios/project.yml introuvable"
             exit 1
           fi
-          echo "dir=$(dirname "$P")" >> "$GITHUB_OUTPUT"
- 
+
+          echo "Projet trouvé !"
+
+      # 3. Installer XcodeGen
       - name: Installer XcodeGen
-        run: brew install xcodegen
- 
-      - name: Générer le projet Xcode
-        working-directory: ${{ steps.loc.outputs.dir }}
-        run: xcodegen generate
- 
-      - name: Compiler (archive non signée)
-        working-directory: ${{ steps.loc.outputs.dir }}
         run: |
+          brew install xcodegen
+          xcodegen --version
+
+      # 4. Générer le projet Xcode
+      - name: Générer le projet Xcode
+        working-directory: veil-vpn-ios
+        run: |
+          echo "Configuration du projet :"
+          cat project.yml
+
+          xcodegen generate
+
+          echo "Projets générés :"
+          ls -la *.xcodeproj
+
+      # 5. Identifier le scheme
+      - name: Vérifier les schemes
+        working-directory: veil-vpn-ios
+        run: |
+          xcodebuild -list -project VeilVPN.xcodeproj
+
+      # 6. Compiler et créer l'archive
+      - name: Compiler Veil VPN
+        working-directory: veil-vpn-ios
+        run: |
+          mkdir -p build
+
           xcodebuild archive \
             -project VeilVPN.xcodeproj \
             -scheme VeilVPN \
@@ -43,26 +70,61 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
- 
-      - name: Pseudo-signer le binaire (utile pour TrollStore)
-        continue-on-error: true
-        working-directory: ${{ steps.loc.outputs.dir }}
+
+      # 7. Vérifier l'application
+      - name: Vérifier le binaire
+        working-directory: veil-vpn-ios
+        run: |
+          APP="build/VeilVPN.xcarchive/Products/Applications/VeilVPN.app"
+
+          if [ ! -d "$APP" ]; then
+            echo "::error::VeilVPN.app introuvable"
+            exit 1
+          fi
+
+          ls -la "$APP"
+
+      # 8. Installer ldid
+      - name: Installer ldid
         run: |
           brew install ldid
-          ldid -S "build/VeilVPN.xcarchive/Products/Applications/VeilVPN.app/VeilVPN"
- 
-      - name: Créer l'IPA
-        working-directory: ${{ steps.loc.outputs.dir }}
+
+      # 9. Signer le binaire avec ldid
+      - name: Signature ldid
+        continue-on-error: true
+        working-directory: veil-vpn-ios
         run: |
-          rm -rf Payload Veil-VPN.ipa
+          APP="build/VeilVPN.xcarchive/Products/Applications/VeilVPN.app"
+
+          if [ -f "$APP/VeilVPN" ]; then
+            ldid -S "$APP/VeilVPN"
+          else
+            echo "Binaire VeilVPN introuvable"
+          fi
+
+      # 10. Créer l'IPA
+      - name: Créer Veil-VPN.ipa
+        working-directory: veil-vpn-ios
+        run: |
+          APP="build/VeilVPN.xcarchive/Products/Applications/VeilVPN.app"
+
+          rm -rf Payload
           mkdir Payload
-          cp -R "build/VeilVPN.xcarchive/Products/Applications/VeilVPN.app" Payload/
+
+          cp -R "$APP" Payload/
+
+          rm -f Veil-VPN.ipa
           zip -qry Veil-VPN.ipa Payload
+
+          echo "IPA généré :"
           ls -lh Veil-VPN.ipa
- 
-      - name: Publier l'IPA
+
+      # 11. Publier l'IPA
+      - name: Publier Veil VPN IPA
         uses: actions/upload-artifact@v4
         with:
-          name: Veil-VPN-ipa
-          path: ${{ steps.loc.outputs.dir }}/Veil-VPN.ipa
- 
+          name: Veil-VPN-IPA
+          path: veil-vpn-ios/Veil-VPN.ipa
+          if-no-files-found: error
+          retention-days: 14
+```
