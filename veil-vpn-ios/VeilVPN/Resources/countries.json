@@ -1,0 +1,18 @@
+[
+  {"id":"fr","country":"France","code":"FR"},
+  {"id":"de","country":"Allemagne","code":"DE"},
+  {"id":"nl","country":"Pays-Bas","code":"NL"},
+  {"id":"uk","country":"Royaume-Uni","code":"GB"},
+  {"id":"us","country":"États-Unis","code":"US"},
+  {"id":"ca","country":"Canada","code":"CA"},
+  {"id":"jp","country":"Japon","code":"JP"},
+  {"id":"sg","country":"Singapour","code":"SG"},
+  {"id":"es","country":"Espagne","code":"ES"},
+  {"id":"it","country":"Italie","code":"IT"},
+  {"id":"pl","country":"Pologne","code":"PL"},
+  {"id":"se","country":"Suède","code":"SE"},
+  {"id":"ch","country":"Suisse","code":"CH"},
+  {"id":"br","country":"Brésil","code":"BR"},
+  {"id":"in","country":"Inde","code":"IN"},
+  {"id":"au","country":"Australie","code":"AU"}
+]

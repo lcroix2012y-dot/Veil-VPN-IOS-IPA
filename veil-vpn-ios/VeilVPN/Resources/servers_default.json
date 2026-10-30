@@ -1,0 +1,8 @@
+{
+  "fr": {"host":"37.187.109.70","port":10111,"city":"Roubaix","available":true},
+  "de": {"host":"46.232.249.209","port":40001,"city":"Nuremberg","available":true},
+  "nl": {"host":"51.15.20.32","port":3129,"city":"Haarlem","available":true},
+  "us": {"host":"209.97.150.167","port":3128,"city":"Clifton","available":true},
+  "jp": {"host":"157.120.37.23","port":3128,"city":"Tokyo","available":true},
+  "sg": {"host":"4.144.146.21","port":80,"city":"Singapore","available":true}
+}

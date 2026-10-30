@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
+<style>
+:root{--bg:#0E1330;--bg2:#161C42;--card:#1B2250;--line:#2A3270;--text:#F2F4FF;--muted:#8E97C9;--blue:#3D6BFF;--violet:#7A5CFF;--green:#22C98F;--red:#FF6B7A}
+*{box-sizing:border-box;margin:0;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Roboto,sans-serif;overflow:hidden}
+.app{position:relative;height:100dvh;display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top,0px) + 12px) 20px calc(env(safe-area-inset-bottom,0px) + 16px);
+ background:radial-gradient(120% 60% at 50% 32%,#252F82 0%,var(--bg) 62%);transition:background .6s}
+.app.on{background:radial-gradient(120% 60% at 50% 32%,#0F5252 0%,var(--bg) 62%)}
+header{display:flex;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px;letter-spacing:.3px}
+.pill{font-size:12px;font-weight:600;padding:5px 12px;border-radius:999px;background:var(--card);color:var(--muted)}
+main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.status{font-size:24px;font-weight:800}
+.app.on .status{color:var(--green)}.app.error .status{color:var(--red)}
+.timer{margin-top:6px;font-size:17px;color:var(--muted);font-variant-numeric:tabular-nums;min-height:22px}
+.power-wrap{position:relative;width:210px;height:210px;margin:34px 0 26px;display:grid;place-items:center}
+.ring{position:absolute;inset:0;border-radius:50%;border:1.5px solid var(--line);opacity:.7}
+.ring.r2{inset:-22px;opacity:.35}
+.power{position:relative;width:166px;height:166px;border-radius:50%;border:0;display:grid;place-items:center;color:#fff;
+ background:linear-gradient(155deg,#6C93FF,var(--blue) 45%,var(--violet));
+ box-shadow:0 14px 44px rgba(90,100,255,.5),inset 0 2px 0 rgba(255,255,255,.28);transition:transform .15s,background .4s,box-shadow .4s}
+.power:active{transform:scale(.95)}
+.power svg{filter:drop-shadow(0 3px 6px rgba(0,0,0,.25))}
+.app.on .power{background:linear-gradient(155deg,#43EBB4,var(--green) 55%,#12A672);box-shadow:0 14px 44px rgba(34,201,143,.5),inset 0 2px 0 rgba(255,255,255,.3)}
+.app.on .ring{border-color:var(--green);animation:pulse 2.4s ease-out infinite}
+.app.on .ring.r2{animation-delay:1.2s}
+.app.busy .power{pointer-events:none;opacity:.85;animation:breathe 1s ease-in-out infinite}
+@keyframes pulse{0%{transform:scale(.92);opacity:.8}100%{transform:scale(1.14);opacity:0}}
+@keyframes breathe{50%{transform:scale(.96)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.hint{color:var(--muted);font-size:14.5px;max-width:290px;line-height:1.45;min-height:42px}
+.server{display:flex;align-items:center;gap:14px;width:100%;padding:13px 15px;background:var(--card);border:1px solid var(--line);border-radius:16px;color:var(--text);text-align:left;font:inherit}
+.server:active{border-color:var(--blue)}
+.server-text{flex:1;display:flex;flex-direction:column}
+.server-text strong{font-size:16px}.server-text small{font-size:13px;color:var(--muted);margin-top:2px}
+.badge{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(160deg,#2C3A8F,#212B6B);font-size:25px}
+.row{display:flex;gap:10px;margin-top:12px}
+.btn{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:13px 10px;border-radius:14px;border:1px solid var(--line);background:var(--bg2);color:var(--text);font:600 14px inherit;font-family:inherit}
+.btn:active{border-color:var(--blue)}
+.btn[disabled]{opacity:.45}
+.btn.primary{background:linear-gradient(160deg,var(--blue),var(--violet));border:0}
+.spin svg{animation:spin 1s linear infinite}
+.sub{margin-top:8px;text-align:center;font-size:12px;color:var(--muted);min-height:16px}
+.panel{position:absolute;inset:0;background:var(--bg);display:flex;flex-direction:column;padding:20px;padding-top:calc(env(safe-area-inset-top,0px) + 12px);z-index:5;transform:translateY(100%);transition:transform .28s ease;visibility:hidden}
+.panel.open{transform:none;visibility:visible}
+.panel-head{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.panel-head h2{font-size:19px}
+.back{background:none;border:0;color:var(--text);padding:8px;border-radius:10px;display:grid;place-items:center}
+#search{-webkit-user-select:text;user-select:text;width:100%;padding:13px 15px;margin-bottom:12px;background:var(--bg2);border:1px solid var(--line);border-radius:14px;color:var(--text);font-size:16px;outline:none}
+ul{list-style:none;padding:0;overflow-y:auto;flex:1}
+li{display:flex;align-items:center;gap:14px;padding:11px 8px;border-radius:14px}
+li:active{background:var(--card)}
+li.sel{background:var(--card);box-shadow:inset 0 0 0 1px var(--blue)}
+li .dot{width:10px;height:10px;border-radius:50%;background:var(--green)}
+.empty{color:var(--muted);font-size:14px;text-align:center;padding:30px 10px;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header>
+    <div class="brand">
+      <svg width="28" height="28" viewBox="0 0 24 24"><path d="M12 2 4 5.5v6c0 5 3.4 9.1 8 10.5 4.6-1.4 8-5.5 8-10.5v-6L12 2Z" fill="#3D6BFF"/><path d="m8.5 12.2 2.3 2.3 4.7-4.9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Veil VPN</span>
+    </div>
+    <span class="pill" id="pill">Gratuit</span>
+  </header>
+
+  <main>
+    <p class="status" id="status">Non connecté</p>
+    <p class="timer" id="timer"></p>
+    <div class="power-wrap">
+      <span class="ring r1"></span><span class="ring r2"></span>
+      <button class="power" id="power" aria-label="Connexion">
+        <svg width="84" height="84" viewBox="0 0 24 24"><path d="M12 2 4 5.5v6c0 5 3.4 9.1 8 10.5 4.6-1.4 8-5.5 8-10.5v-6L12 2Z" fill="rgba(255,255,255,.2)" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/><path d="m8.3 12.2 2.5 2.5 4.9-5.1" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+    <p class="hint" id="hint">Appuyez sur le bouton pour vous connecter</p>
+  </main>
+
+  <button class="server" id="serverBtn">
+    <span class="badge" id="selFlag">🌍</span>
+    <span class="server-text"><strong id="selCountry">—</strong><small id="selCity"></small></span>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8E97C9" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
+  </button>
+
+  <div class="row">
+    <button class="btn" id="refresh">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
+      <span id="refreshTxt">Actualiser les proxys</span>
+    </button>
+    <button class="btn primary" id="browse" disabled>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg>
+      Navigateur
+    </button>
+  </div>
+  <p class="sub" id="sub"></p>
+
+  <section class="panel" id="panel">
+    <div class="panel-head">
+      <button class="back" id="back" aria-label="Retour"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg></button>
+      <h2>Choisir un emplacement</h2>
+    </div>
+    <input id="search" type="search" placeholder="Rechercher un pays" autocomplete="off">
+    <ul id="list"></ul>
+  </section>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const flag = c => c.toUpperCase().replace(/./g, ch => String.fromCodePoint(127397 + ch.charCodeAt()));
+let S = { servers: [], selected: "", connectedId: null, since: 0, lastUpdate: 0 };
+let busy = false, refreshing = false, timerId = null;
+
+function load() { try { S = JSON.parse(Android.getState()); } catch (e) {} render(); }
+const avail = () => S.servers.filter(s => s.available);
+
+function fmtDate(t) { return t ? new Date(t).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "jamais"; }
+
+function render() {
+  const app = $("app"), on = !!S.connectedId;
+  app.classList.toggle("on", on);
+  app.classList.toggle("busy", busy);
+  if (!busy) app.classList.remove("error");
+  const sel = S.servers.find(s => s.id === S.selected);
+  $("selFlag").textContent = sel ? flag(sel.code) : "🌍";
+  $("selCountry").textContent = sel ? sel.country : "Aucun serveur";
+  $("selCity").textContent = sel ? (sel.city || "") : "Actualisez les proxys";
+  if (!busy && !$("app").classList.contains("error")) {
+    $("status").textContent = on ? "Connecté" : "Non connecté";
+    $("hint").textContent = on ? "Votre navigation passe par le proxy. Ouvrez le navigateur Veil." : "Appuyez sur le bouton pour vous connecter";
+  }
+  $("browse").disabled = false;
+  $("sub").textContent = refreshing ? "" : avail().length + " pays disponibles · maj " + fmtDate(S.lastUpdate);
+  $("refreshTxt").textContent = refreshing ? "Actualisation…" : "Actualiser les proxys";
+  $("refresh").classList.toggle("spin", refreshing);
+  $("refresh").disabled = refreshing;
+  $("pill").textContent = on ? "Protégé" : "Gratuit";
+  tick();
+}
+
+function tick() {
+  clearInterval(timerId);
+  const el = $("timer");
+  if (!S.connectedId) { el.textContent = ""; return; }
+  const f = () => {
+    const s = Math.max(0, Math.floor((Date.now() - S.since) / 1000));
+    const p = n => String(n).padStart(2, "0");
+    el.textContent = p(Math.floor(s / 3600)) + ":" + p(Math.floor(s / 60) % 60) + ":" + p(s % 60);
+  };
+  f(); timerId = setInterval(f, 1000);
+}
+
+window.onNative = (ev, data) => {
+  const app = $("app");
+  if (ev === "connecting") { busy = true; app.classList.add("busy"); app.classList.remove("error"); $("status").textContent = "Connexion…"; $("hint").textContent = "Test du serveur en cours"; }
+  else if (ev === "connected" || ev === "disconnected") { busy = false; S = JSON.parse(data); render(); }
+  else if (ev === "error") { busy = false; app.classList.remove("busy"); app.classList.add("error"); $("status").textContent = "Échec"; $("hint").textContent = data; }
+  else if (ev === "refreshStart") { refreshing = true; render(); }
+  else if (ev === "progress") { $("sub").textContent = data; }
+  else if (ev === "refreshDone") { refreshing = false; S = JSON.parse(data); busy = false; render(); }
+};
+
+$("power").onclick = () => { if (busy) return; S.connectedId ? Android.disconnect() : Android.connect(); };
+$("refresh").onclick = () => { if (!refreshing) Android.refresh(); };
+$("browse").onclick = () => Android.openBrowser();
+
+function openPanel() { $("search").value = ""; fillList(); $("panel").classList.add("open"); }
+function closePanel() { $("panel").classList.remove("open"); }
+$("serverBtn").onclick = openPanel;
+$("back").onclick = closePanel;
+$("search").oninput = fillList;
+
+function fillList() {
+  const q = $("search").value.trim().toLowerCase(), ul = $("list");
+  ul.innerHTML = "";
+  const items = avail().filter(s => (s.country + " " + s.city).toLowerCase().includes(q));
+  if (!items.length) {
+    ul.innerHTML = '<div class="empty">' + (avail().length ? "Aucun résultat." : "Aucun serveur HTTPS disponible pour le moment.<br>Appuyez sur « Actualiser les proxys ».") + "</div>";
+    return;
+  }
+  for (const s of items) {
+    const li = document.createElement("li");
+    if (s.id === S.selected) li.className = "sel";
+    li.innerHTML = '<span class="badge">' + flag(s.code) + '</span><span class="server-text"><strong>' + s.country + "</strong><small>" + (s.city || "") + '</small></span><span class="dot"></span>';
+    li.onclick = () => {
+      Android.select(s.id); S.selected = s.id; closePanel(); render();
+      if (S.connectedId && S.connectedId !== s.id) Android.connect();
+    };
+    ul.appendChild(li);
+  }
+}
+load();
+</script>
+</body>
+</html>
